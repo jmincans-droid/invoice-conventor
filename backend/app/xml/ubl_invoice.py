@@ -1,5 +1,6 @@
 import base64
 from decimal import Decimal
+from pathlib import Path
 
 from lxml import etree
 
@@ -43,18 +44,27 @@ def _party(parent: etree._Element, tag: str, party) -> None:
 def _line(parent: etree._Element, index: int, line: InvoiceLine, currency: str) -> None:
     node = etree.SubElement(parent, f"{{{NS['cac']}}}InvoiceLine")
     _text(node, "ID", index)
+    if line.note:
+        _text(node, "Note", line.note)
     _text(node, "InvoicedQuantity", line.quantity, unitCode=line.unit_code or "C62")
     _text(node, "LineExtensionAmount", _money(line.line_net_amount), currencyID=currency)
     item = etree.SubElement(node, f"{{{NS['cac']}}}Item")
     _text(item, "Name", line.description)
+    if line.seller_item_id:
+        seller_id = etree.SubElement(item, f"{{{NS['cac']}}}SellersItemIdentification")
+        _text(seller_id, "ID", line.seller_item_id)
     tax = etree.SubElement(item, f"{{{NS['cac']}}}ClassifiedTaxCategory")
     _text(tax, "ID", line.vat_category or "S")
     _text(tax, "Percent", line.vat_rate or Decimal("0"))
     scheme = etree.SubElement(tax, f"{{{NS['cac']}}}TaxScheme")
     _text(scheme, "ID", "VAT")
+    if line.additional_property_name and line.additional_property_value:
+        property_node = etree.SubElement(item, f"{{{NS['cac']}}}AdditionalItemProperty")
+        _text(property_node, "Name", line.additional_property_name)
+        _text(property_node, "Value", line.additional_property_value)
     if line.unit_price is not None:
         price = etree.SubElement(node, f"{{{NS['cac']}}}Price")
-        _text(price, "PriceAmount", _money(line.unit_price), currencyID=currency)
+        _text(price, "PriceAmount", format(line.unit_price, "f"), currencyID=currency)
 
 
 def generate_ubl_invoice(
@@ -69,19 +79,27 @@ def generate_ubl_invoice(
     if invoice.due_date:
         _text(root, "DueDate", invoice.due_date)
     _text(root, "InvoiceTypeCode", "380")
+    if invoice.notes:
+        _text(root, "Note", invoice.notes)
     _text(root, "DocumentCurrencyCode", currency)
+    if invoice.buyer_reference:
+        _text(root, "BuyerReference", invoice.buyer_reference)
     if supporting_pdf is not None:
         reference = etree.SubElement(root, f"{{{NS['cac']}}}AdditionalDocumentReference")
-        _text(reference, "ID", "original-invoice-pdf")
-        _text(reference, "DocumentDescription", "Original invoice PDF")
+        reference_id = Path(supporting_pdf_filename or "original-invoice.pdf").stem[:20]
+        _text(reference, "ID", reference_id)
         attachment = etree.SubElement(reference, f"{{{NS['cac']}}}Attachment")
         binary = etree.SubElement(attachment, f"{{{NS['cbc']}}}EmbeddedDocumentBinaryObject", mimeCode="application/pdf", filename=supporting_pdf_filename or "original-invoice.pdf")
         binary.text = base64.b64encode(supporting_pdf).decode("ascii")
+    if invoice.project_id:
+        project = etree.SubElement(root, f"{{{NS['cac']}}}ProjectReference")
+        _text(project, "ID", invoice.project_id)
     _party(root, "AccountingSupplierParty", invoice.supplier)
     _party(root, "AccountingCustomerParty", invoice.customer)
     if invoice.payment.method:
         means = etree.SubElement(root, f"{{{NS['cac']}}}PaymentMeans")
-        _text(means, "PaymentMeansCode", "30" if invoice.payment.method == "bank_transfer" else invoice.payment.method)
+        code = invoice.payment.means_code or ("30" if invoice.payment.method == "bank_transfer" else invoice.payment.method)
+        _text(means, "PaymentMeansCode", code)
         if invoice.payment.payment_reference:
             _text(means, "InstructionID", invoice.payment.payment_reference)
         if invoice.payment.iban:
@@ -89,6 +107,23 @@ def generate_ubl_invoice(
             _text(account, "ID", invoice.payment.iban)
     tax_total = etree.SubElement(root, f"{{{NS['cac']}}}TaxTotal")
     _text(tax_total, "TaxAmount", _money(invoice.totals.vat_amount), currencyID=currency)
+    tax_groups: dict[tuple[str, Decimal], dict[str, Decimal]] = {}
+    for line in invoice.lines:
+        if line.line_net_amount is None or line.vat_rate is None:
+            continue
+        key = (line.vat_category or "S", line.vat_rate)
+        group = tax_groups.setdefault(key, {"taxable": Decimal("0"), "tax": Decimal("0")})
+        group["taxable"] += line.line_net_amount
+        group["tax"] += line.vat_amount or Decimal("0")
+    for (category, rate), amounts in tax_groups.items():
+        subtotal = etree.SubElement(tax_total, f"{{{NS['cac']}}}TaxSubtotal")
+        _text(subtotal, "TaxableAmount", _money(amounts["taxable"]), currencyID=currency)
+        _text(subtotal, "TaxAmount", _money(amounts["tax"]), currencyID=currency)
+        tax_category = etree.SubElement(subtotal, f"{{{NS['cac']}}}TaxCategory")
+        _text(tax_category, "ID", category)
+        _text(tax_category, "Percent", rate)
+        tax_scheme = etree.SubElement(tax_category, f"{{{NS['cac']}}}TaxScheme")
+        _text(tax_scheme, "ID", "VAT")
     total = etree.SubElement(root, f"{{{NS['cac']}}}LegalMonetaryTotal")
     _text(total, "LineExtensionAmount", _money(invoice.totals.net_amount), currencyID=currency)
     _text(total, "TaxExclusiveAmount", _money(invoice.totals.net_amount), currencyID=currency)

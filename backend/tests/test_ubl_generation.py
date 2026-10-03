@@ -13,3 +13,5 @@ def test_ubl_is_well_formed_and_contains_core_values(valmieras) -> None:
     endpoints = root.xpath("//*[local-name()='EndpointID']")
     assert [endpoint.text for endpoint in endpoints] == ["40008249801", "40203365911"]
     assert all(endpoint.get("schemeID") == "0218" for endpoint in endpoints)
+    assert root.xpath("count(//*[local-name()='TaxSubtotal'])") == 1.0
+    assert root.xpath("string(//*[local-name()='TaxSubtotal']/*[local-name()='TaxableAmount'])") == "1000.00"

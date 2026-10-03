@@ -13,3 +13,5 @@ Use this skill for work on this repository's invoice-conversion workflow.
 - Treat recipient Peppol endpoint identifiers as candidates unless verified by the recipient or its service provider.
 - Do not add invoice persistence, broad logging, or delivery to external endpoints without explicit user authorization.
 - Run the backend pytest suite after changes.
+- For ZAAO HFD invoice layouts with VAT-inclusive unit prices, calculate the UBL net unit price from the parsed VAT rate and retain its meaningful decimal precision. Require the resulting line and total amounts to validate within 0.01 EUR.
+- Generate one `cac:TaxSubtotal` per VAT category, in addition to `cac:TaxTotal`. Do not fabricate project references, delivery locations, seller item IDs, or Peppol endpoint registrations when they are not evidenced by the source PDF; surface them for review instead.

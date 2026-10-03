@@ -28,6 +28,7 @@ class Party(BaseModel):
 
 class Payment(BaseModel):
     method: str | None = None
+    means_code: str | None = None
     payment_reference: str | None = None
     iban: str | None = None
     bic: str | None = None
@@ -35,6 +36,10 @@ class Payment(BaseModel):
 
 class InvoiceLine(BaseModel):
     description: str | None = None
+    note: str | None = None
+    seller_item_id: str | None = None
+    additional_property_name: str | None = None
+    additional_property_value: str | None = None
     quantity: Decimal | None = None
     unit_code: str | None = None
     unit_price: Decimal | None = None
@@ -65,6 +70,8 @@ class Invoice(BaseModel):
     lines: list[InvoiceLine] = Field(default_factory=list)
     totals: Totals = Field(default_factory=Totals)
     notes: str | None = None
+    buyer_reference: str | None = None
+    project_id: str | None = None
     service_period: str | None = None
     field_observations: dict[str, Observation] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
