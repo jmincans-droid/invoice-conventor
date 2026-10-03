@@ -1,0 +1,3 @@
+interface:
+  display_name: "Invoice Converter"
+  short_description: "Maintain Latvian PDF-to-Peppol invoice workflows"

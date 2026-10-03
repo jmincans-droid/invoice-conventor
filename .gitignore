@@ -1,0 +1,33 @@
+# Python bytecode and tooling caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Local Python environments
+.venv/
+venv/
+ENV/
+env/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# Local runtime output. Test PDF fixtures remain versioned in backend/tests/fixtures/.
+backend/uploads/
+backend/tmp/

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="lv">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF → E-RĒĶINS</title><link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main>
+    <header><p class="eyebrow">MVP</p><h1>PDF → E-RĒĶINS</h1><p>Pārbaudiet datus pirms XML ģenerēšanas.</p></header>
+    <section class="upload"><label for="pdf">Izvēlēties PDF (līdz 20 MB)</label><input id="pdf" type="file" accept="application/pdf"><button id="extract">Nolasīt rēķinu</button><p id="status" role="status"></p></section>
+    <section id="review" class="review hidden">
+      <article><h2>Oriģinālais rēķins</h2><p class="hint">Šis ir jūsu augšupielādētais fails; tas netiek saglabāts serverī.</p><div id="preview" class="pdf-preview" aria-live="polite"></div></article>
+      <article><h2>Atpazītie dati</h2><p class="hint">Labo JSON, ja nepieciešams. Warnings un confidence norāda, kuri lauki jāpārskata.</p><textarea id="invoice" spellcheck="false"></textarea><div class="actions"><button id="validate">Pārbaudīt</button><button id="xml">Izveidot XML ar PDF</button></div><pre id="result"></pre></article>
+    </section>
+  </main><script src="/static/app.js"></script>
+</body></html>
